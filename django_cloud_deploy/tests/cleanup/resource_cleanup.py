@@ -32,7 +32,11 @@ class GCPResourceCleanUp(test_base.ResourceCleanUp, test_base.ResourceList):
         # The resource created for testing should be in format similar with
         # "db-20190307223549-b4wl"
         # There are other resources that we do not want to clean up.
-        if not re.match(r'^[a-z]+-[0-9]{14}-[a-z0-9]+$', resource_name):
+
+        # Some special examples are
+        # "project20190308221801exjk-instance", sql instance name in e2e tests.
+        # "project20190308221801exjk", cluster name in e2e tests
+        if not re.match(r'^[a-z]+-?[0-9]{14}-?[a-z0-9]+', resource_name):
             return False
         now = datetime.datetime.utcnow()
         create_time = utils.parse_creation_time(resource_name)
