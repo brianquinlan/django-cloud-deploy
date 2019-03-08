@@ -87,7 +87,8 @@ class DjangoFileGeneratorTest(BaseTest):
         self.project_dir = tempfile.mkdtemp()
         image_name = utils.get_resource_name(resource_type='image')
         self.image_tag = '/'.join(['gcr.io', self.project_id, image_name])
-        self.instance_name = utils.get_resource_name(resource_type='instance')
+        self.instance_name = utils.get_resource_name(
+            resource_type='sql-instance')
         self.database_name = utils.get_resource_name(resource_type='db')
         app_name = 'fake_app'
         generator = source_generator.DjangoSourceFileGenerator()
