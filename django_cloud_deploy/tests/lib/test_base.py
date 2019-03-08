@@ -117,21 +117,20 @@ class ResourceList(BaseTest):
         service = service or discovery.build(
             'iam', 'v1', credentials=self.credentials, cache_discovery=False)
         resource_name = '/'.join(['projects', self.project_id])
-        request = service.projects().serviceAccounts().list(name=resource_name)
-        response = request.execute()
+        request = service.projects().serviceAccounts().list(
+            name=resource_name)
         accounts = []
         while True:
+            response = request.execute()
             # Sometimes the response does not contain any accounts object, but
             # only contains the nextPageToken. At this time, there are still
             # more accounts in the remaining pages.
             accounts += [
                 account['email'] for account in response.get('accounts', [])
             ]
-            if 'nextPageToken' in response:
-                request = service.projects().serviceAccounts().list(
-                    name=resource_name, pageToken=response.get('nextPageToken'))
-                response = request.execute()
-            else:
+            request = service.projects().serviceAccounts().list_next(
+                previous_request=request, previous_response=response)
+            if request is None:
                 break
         return accounts
 
@@ -168,7 +167,8 @@ class ResourceList(BaseTest):
         request = service_usage_service.services().list(
             parent=parent, filter='state:ENABLED')
         response = request.execute()
-        return [service['config']['name'] for service in response['services']]
+        return [service['config']['name'] for service in response.get(
+            'services', [])]
 
     def list_instances(self, service=None):
         service = service or discovery.build(
@@ -178,7 +178,8 @@ class ResourceList(BaseTest):
             credentials=self.credentials)
         request = service.instances().list(project=self.project_id)
         response = request.execute()
-        instances = [item['name'] for item in response['items']]
+        print(response)
+        instances = [item['name'] for item in response.get('items', [])]
         return instances
 
     def list_databases(self, instance_name, service=None):
@@ -190,7 +191,7 @@ class ResourceList(BaseTest):
         request = service.databases().list(
             project=self.project_id, instance=instance_name)
         response = request.execute()
-        databases = [item['name'] for item in response['items']]
+        databases = [item['name'] for item in response.get('items', [])]
         return databases
 
 
