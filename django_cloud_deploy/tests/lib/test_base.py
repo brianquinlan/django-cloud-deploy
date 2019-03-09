@@ -117,8 +117,7 @@ class ResourceList(BaseTest):
         service = service or discovery.build(
             'iam', 'v1', credentials=self.credentials, cache_discovery=False)
         resource_name = '/'.join(['projects', self.project_id])
-        request = service.projects().serviceAccounts().list(
-            name=resource_name)
+        request = service.projects().serviceAccounts().list(name=resource_name)
         accounts = []
         while True:
             response = request.execute()
@@ -167,8 +166,10 @@ class ResourceList(BaseTest):
         request = service_usage_service.services().list(
             parent=parent, filter='state:ENABLED')
         response = request.execute()
-        return [service['config']['name'] for service in response.get(
-            'services', [])]
+        return [
+            service['config']['name']
+            for service in response.get('services', [])
+        ]
 
     def list_instances(self, service=None):
         service = service or discovery.build(
