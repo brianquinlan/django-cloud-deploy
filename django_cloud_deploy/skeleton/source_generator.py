@@ -14,7 +14,6 @@
 
 """Generate source files of a django app ready to be deployed to GKE."""
 
-import abc
 import os
 import shutil
 import sys
@@ -27,14 +26,12 @@ from django_cloud_deploy import crash_handling
 import jinja2
 
 
-class _FileGenerator(object):  # pytype: disable=ignored-abstractmethod
+class _FileGenerator(object):
     """An abstract class to generate files using templates."""
 
-    @abc.abstractmethod
     def generate_from_existing(self):
         """Generate source files from existing files."""
 
-    @abc.abstractmethod
     def generate_new(self):
         """Generate new source files."""
 
@@ -631,7 +628,8 @@ class DjangoSourceFileGenerator(_FileGenerator):
         self.yaml_file_generator.generate_new(
             project_dir, project_name, project_id, instance_name, region,
             image_tag, cloudsql_secrets, django_secrets)
-        self.app_engine_file_generator.generate_new(project_name, project_dir)
+        self.app_engine_file_generator.generate_new(
+            project_name, project_dir, service_name)
         self.setup_django_environment(
             project_dir=project_dir,
             project_name=project_name,
