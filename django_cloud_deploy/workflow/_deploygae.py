@@ -17,6 +17,7 @@ import os
 import shutil
 import subprocess
 import time
+import yaml
 
 from googleapiclient import discovery
 
@@ -32,7 +33,7 @@ class DeploygaeWorkflow(object):
 
     def __init__(self, credentials: credentials.Credentials):
         self._appengine_service = discovery.build(
-            'appengine', 'v1', credentials=credentials)
+            'appengine', 'v1', credentials=credentials, cache_discovery=False)
 
     def _create_app(self, project_id: str, region: str):
         """Synchronously create an App Engine application in the project."""
@@ -98,4 +99,15 @@ class DeploygaeWorkflow(object):
             env=env_vars)
         if gcloud_result.returncode != 0:
             raise DeployNewAppError(gcloud_result.stderr)
-        return 'https://{}.appspot.com/'.format(project_id)
+
+        with open(app_yaml_path) as yaml_file:
+            attributes = yaml.load(yaml_file.read())
+        service_name = attributes.get('service')
+
+        # This is the name of the default service. This case happens in real
+        # use cases.
+        if service_name == 'default':
+            return 'https://{}.appspot.com/'.format(project_id)
+        else:  # This case happens in test
+            return 'https://{}-dot-{}.appspot.com'.format(
+                service_name, project_id)

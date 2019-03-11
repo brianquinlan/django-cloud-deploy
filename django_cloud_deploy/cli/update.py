@@ -14,12 +14,16 @@
 """Create and deploy a new Django project on GKE."""
 
 import argparse
-import sys
 
+from django_cloud_deploy import config
 from django_cloud_deploy import tool_requirements
 from django_cloud_deploy.cli import io
 from django_cloud_deploy.cli import prompt
 import django_cloud_deploy.workflow as workflow
+
+
+class InvalidConfigError(Exception):
+    """A error occurred when fail to read required information from config."""
 
 
 def add_arguments(parser):
@@ -44,57 +48,30 @@ def add_arguments(parser):
 
 def main(args: argparse.Namespace, console: io.IO = io.ConsoleIO()):
 
-    if not tool_requirements.check_and_handle_requirements(
-            console, args.backend):
+    root_prompt = prompt.RootPrompt()
+    actual_parameters = root_prompt.prompt(prompt.Command.UPDATE, console,
+                                           vars(args))
+
+    # This got moved from the start because we wanted to save the user from
+    # giving us another bit of information that we can automatically retrieve
+    # It will be rare if they are updating, that they do not have the
+    # requirements.
+    django_dir = actual_parameters['django_directory_path_update']
+    config_obj = config.Configuration(django_dir)
+    backend = config_obj.get('backend')
+    if not backend:
+        raise InvalidConfigError(
+            'Configuration file in [{}] does not contain enough '
+            'information to update a Django project.'.format(django_dir))
+
+    if not tool_requirements.check_and_handle_requirements(console, backend):
         return
-
-    prompt_order = [
-        'credentials',
-        'database_password',
-        'django_directory_path',
-    ]
-
-    required_parameters_to_prompt = {
-        'credentials': prompt.CredentialsPrompt,
-        'database_password': prompt.PostgresPasswordUpdatePrompt,
-        'django_directory_path': prompt.DjangoFilesystemPathUpdate,
-    }
-
-    # Parameters that were *not* provided as command flags.
-    remaining_parameters_to_prompt = {}
-
-    actual_parameters = {}
-
-    for parameter_name, prompter in required_parameters_to_prompt.items():
-        value = getattr(args, parameter_name, None)
-        if value is not None:
-            try:
-                prompter.validate(value)
-            except ValueError as e:
-                print(e, file=sys.stderr)
-                sys.exit(1)
-            actual_parameters[parameter_name] = value
-        else:
-            remaining_parameters_to_prompt[parameter_name] = prompter
-
-    if remaining_parameters_to_prompt:
-
-        num_steps = len(remaining_parameters_to_prompt)
-        console.tell('<b>{} steps to update your project</b>'.format(num_steps))
-        console.tell()
-        parameter_and_prompt = sorted(
-            remaining_parameters_to_prompt.items(),
-            key=lambda i: prompt_order.index(i[0]))
-
-        for step, (parameter_name, prompter) in enumerate(parameter_and_prompt):
-            step = '<b>[{}/{}]</b>'.format(step + 1, num_steps)
-            actual_parameters[parameter_name] = prompter.prompt(
-                console, step, actual_parameters)
 
     workflow_manager = workflow.WorkflowManager(
         actual_parameters['credentials'])
-    workflow_manager.update_project(actual_parameters['django_directory_path'],
-                                    actual_parameters['database_password'])
+    workflow_manager.update_project(
+        actual_parameters['django_directory_path_update'],
+        actual_parameters['database_password'])
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Versconsolen 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITconsoleNS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissconsolens and
 # limitatconsolens under the License.
-"""End to end test for create and deploy new project."""
+"""End to end test for create and deploy new project using Google App Engine."""
 
 import os
 import shutil
@@ -31,7 +31,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome import options
 
 
-class GKEDeployAndUpdateE2ETest(test_base.ResourceCleanUpTest):
+class GAEDeployAndUpdateE2ETest(test_base.ResourceCleanUpTest):
     """End to end test for create and deploy new project."""
 
     _CLOUDSQL_ROLES = ('roles/cloudsql.client', 'roles/cloudsql.editor',
@@ -65,19 +65,18 @@ class GKEDeployAndUpdateE2ETest(test_base.ResourceCleanUpTest):
 
         cloud_storage_bucket_name = utils.get_resource_name('bucket')
         django_project_name = utils.get_resource_name('project', delimiter='')
+        service_name = utils.get_resource_name('svc', delimiter='')
 
         # Generate names we hardcode for users
-        image_tag = '/'.join(['gcr.io', self.project_id, django_project_name])
         service_account_email = '{}@{}.iam.gserviceaccount.com'.format(
             self._FAKE_CLOUDSQL_SERVICE_ACCOUNT['id'], self.project_id)
         member = 'serviceAccount:{}'.format(service_account_email)
 
-        with self.clean_up_cluster(django_project_name), \
-                self.clean_up_bucket(cloud_storage_bucket_name), \
-                self.clean_up_docker_image(image_tag), \
+        with self.clean_up_bucket(cloud_storage_bucket_name), \
                 self.delete_service_account(service_account_email), \
                 self.reset_iam_policy(member, self._CLOUDSQL_ROLES), \
-                self.clean_up_sql_instance(django_project_name + '-instance'):
+                self.clean_up_sql_instance(django_project_name + '-instance'), \
+                self.clean_up_appengine_service(service_name):
 
             test_io = io.TestIO()
             test_io.answers.append(self.project_id)  # project_id
@@ -109,7 +108,8 @@ class GKEDeployAndUpdateE2ETest(test_base.ResourceCleanUpTest):
                 use_existing_project=True,
                 bucket_name=cloud_storage_bucket_name,
                 service_accounts=fake_service_accounts,
-                backend='gke')
+                appengine_service_name=service_name,
+                backend='gae')
             url = new.main(arguments, test_io)
 
             # Assert answers are all used.

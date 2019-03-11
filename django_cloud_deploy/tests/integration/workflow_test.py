@@ -43,7 +43,10 @@ class EnableServiceWorkflowIntegrationTest(test_base.ResourceCleanUpTest):
         self.enable_service_workflow = _enable_service.EnableServiceWorkflow(
             self.credentials)
         self.service_usage_service = discovery.build(
-            'serviceusage', 'v1', credentials=self.credentials)
+            'serviceusage',
+            'v1',
+            credentials=self.credentials,
+            cache_discovery=False)
 
     def _list_enabled_services(self):
         parent = '/'.join(['projects', self.project_id])
@@ -80,9 +83,12 @@ class ServiceAccountKeyGenerationWorkflowIntegrationTest(
             _service_account.ServiceAccountKeyGenerationWorkflow(
                 self.credentials))
         self.iam_service = discovery.build(
-            'iam', 'v1', credentials=self.credentials)
+            'iam', 'v1', credentials=self.credentials, cache_discovery=False)
         self.cloudresourcemanager_service = discovery.build(
-            'cloudresourcemanager', 'v1', credentials=self.credentials)
+            'cloudresourcemanager',
+            'v1',
+            credentials=self.credentials,
+            cache_discovery=False)
 
     def _list_service_accounts(self):
         resource_name = '/'.join(['projects', self.project_id])
@@ -91,7 +97,12 @@ class ServiceAccountKeyGenerationWorkflowIntegrationTest(
         response = request.execute()
         accounts = []
         while True:
-            accounts += [account['email'] for account in response['accounts']]
+            # Sometimes the response does not contain any accounts object, but
+            # only contains the nextPageToken. At this time, there are still
+            # more accounts in the remaining pages.
+            accounts += [
+                account['email'] for account in response.get('accounts', [])
+            ]
             if 'nextPageToken' in response:
                 request = self.iam_service.projects().serviceAccounts().list(
                     name=resource_name, pageToken=response.get('nextPageToken'))
@@ -123,9 +134,6 @@ class ServiceAccountKeyGenerationWorkflowIntegrationTest(
                                 self.project_id, service_account_id,
                                 'Test Service Account', self.ROLES))
                 self.assert_valid_service_account_key(json.loads(key_data))
-                # Assert the service account is created
-                all_service_accounts = self._list_service_accounts()
-                self.assertIn(service_account_email, all_service_accounts)
 
                 # Assert the service account has correct roles
                 policy = self._get_iam_policy()
