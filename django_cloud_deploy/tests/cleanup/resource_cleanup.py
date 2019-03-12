@@ -117,17 +117,10 @@ class GCPResourceCleanUp(test_base.ResourceCleanUp, test_base.ResourceList):
             resource=self.project_id, body=body)
         request.execute()
 
-    def cleanup_test_resources(self):
+    def test_cleanup_resources(self):
         """This is not a test, but cleans up test related resources."""
         self.delete_expired_clusters()
         self.delete_expired_buckets()
         self.delete_expired_sql_instances()
         self.delete_expired_service_accounts()
         self.reset_expired_iam_policy()
-
-
-if __name__ == '__main__':
-    test_suite = unittest.TestSuite()
-    test_suite.addTest(GCPResourceCleanUp('cleanup_test_resources'))
-    runner = unittest.TextTestRunner()
-    runner.run(test_suite)
