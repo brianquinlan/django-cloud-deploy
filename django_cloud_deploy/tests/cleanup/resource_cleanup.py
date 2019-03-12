@@ -15,6 +15,7 @@
 
 import datetime
 import re
+import unittest
 
 from django_cloud_deploy.tests.lib import test_base
 from django_cloud_deploy.tests.lib import utils
@@ -27,15 +28,27 @@ class GCPResourceCleanUp(test_base.ResourceCleanUp, test_base.ResourceList):
     MAX_DIFF = datetime.timedelta(hours=2)
 
     def _should_delete(self, resource_name: str) -> bool:
-        """Return whether the given resource should be deleted."""
+        """Return whether the given resource should be deleted.
 
-        # The resource created for testing should be in format similar with
-        # "db-20190307223549-b4wl"
-        # There are other resources that we do not want to clean up.
+        If a resource is not more than 2 hours old, we should not delete it
+        because these resources are still being used by other test runs.
+        Also, the GCP project we are using for test already contains some
+        resources. For example, service accounts for authentication. Those
+        resources should not be deleted.
 
-        # Some special examples are
-        # "project20190308221801exjk-instance", sql instance name in e2e tests.
-        # "project20190308221801exjk", cluster name in e2e tests
+        Args:
+            resource_name: Name of the resource we want to check whether it
+                should be deleted. The resource created for testing should be
+                in format similar witt "db-20190307223549-b4wl".
+                There are other resources that we do not want to clean up.
+                Some special examples are
+                "project20190308221801exjk-instance", sql instance name in e2e
+                tests.
+                "project20190308221801exjk", cluster name in e2e tests
+
+        Returns:
+            Whether this resource should be deleted.
+        """
         if not re.match(r'^[a-z]+-?[0-9]{14}-?[a-z0-9]+', resource_name):
             return False
         now = datetime.datetime.utcnow()
@@ -104,10 +117,17 @@ class GCPResourceCleanUp(test_base.ResourceCleanUp, test_base.ResourceList):
             resource=self.project_id, body=body)
         request.execute()
 
-    def test_resource_cleanup(self):
+    def cleanup_test_resources(self):
         """This is not a test, but cleans up test related resources."""
         self.delete_expired_clusters()
         self.delete_expired_buckets()
         self.delete_expired_sql_instances()
         self.delete_expired_service_accounts()
         self.reset_expired_iam_policy()
+
+
+if __name__ == '__main__':
+    test_suite = unittest.TestSuite()
+    test_suite.addTest(GCPResourceCleanUp('cleanup_test_resources'))
+    runner = unittest.TextTestRunner()
+    runner.run(test_suite)

@@ -119,7 +119,7 @@ class ResourceList(BaseTest):
         resource_name = '/'.join(['projects', self.project_id])
         request = service.projects().serviceAccounts().list(name=resource_name)
         accounts = []
-        while True:
+        while request:
             response = request.execute()
             # Sometimes the response does not contain any accounts object, but
             # only contains the nextPageToken. At this time, there are still
@@ -129,8 +129,6 @@ class ResourceList(BaseTest):
             ]
             request = service.projects().serviceAccounts().list_next(
                 previous_request=request, previous_response=response)
-            if request is None:
-                break
         return accounts
 
     def list_clusters(self, service=None):
@@ -179,7 +177,6 @@ class ResourceList(BaseTest):
             credentials=self.credentials)
         request = service.instances().list(project=self.project_id)
         response = request.execute()
-        print(response)
         instances = [item['name'] for item in response.get('items', [])]
         return instances
 

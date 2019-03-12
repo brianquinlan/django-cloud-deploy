@@ -110,4 +110,4 @@ def resource_cleanup(session):
     """Cleanup GCP resources used by tests."""
     session.interpreter = 'python3.5'
     session.install(*PACKAGES)
-    session.run('py.test', 'tests/cleanup/resource_cleanup.py')
+    session.run('python', 'tests/cleanup/resource_cleanup.py')
