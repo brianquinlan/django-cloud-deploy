@@ -128,7 +128,7 @@ jobs:
           name: Run Clean Up
           command: |
             pyenv global 2.7.12 3.5.2
-            nox -f django_cloud_deploy/nox.py -s resource_cleanup
+            python3 django_cloud_deploy/tests/cleanup/resource_cleanup.py
 
 workflows:
   version: 2
